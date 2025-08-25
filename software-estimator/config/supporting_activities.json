@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "activities": [
+  { "key": "qa", "title": "QA", "suggestedPercentOfFunctional": 15, "defaultAllocations": [ { "role": "QA", "hours": 2 }, { "role": "Developer", "hours": 1 } ], "notes": "Typical range 10–20% of functional effort", "baseline": true },
+    { "key": "code_review", "title": "Code Review", "suggestedPercentOfFunctional": 5, "defaultAllocations": [ { "role": "Developer", "hours": 1 } ] },
+    { "key": "integration", "title": "Integration", "suggestedPercentOfFunctional": 8, "defaultAllocations": [ { "role": "Developer", "hours": 1 } ] },
+    { "key": "deployment", "title": "Deployment", "suggestedPercentOfFunctional": 5, "defaultAllocations": [ { "role": "DevOps", "hours": 1 }, { "role": "Developer", "hours": 1 } ] },
+    { "key": "documentation", "title": "Documentation", "suggestedPercentOfFunctional": 3, "defaultAllocations": [ { "role": "BA", "hours": 1 } ] },
+  { "key": "project_management", "title": "Project Management", "suggestedPercentOfFunctional": 10, "defaultAllocations": [ { "role": "PM", "hours": 1 } ], "notes": "Scrum ceremonies, planning, stakeholder mgmt", "baseline": true },
+    { "key": "business_analysis", "title": "Business Analysis", "suggestedPercentOfFunctional": 7, "defaultAllocations": [ { "role": "BA", "hours": 1 } ] },
+    { "key": "architecture", "title": "Architecture & Design", "suggestedPercentOfFunctional": 6, "defaultAllocations": [ { "role": "Architect", "hours": 1 } ] },
+    { "key": "security", "title": "Security & Compliance", "suggestedPercentOfFunctional": 4, "defaultAllocations": [ { "role": "Security", "hours": 1 } ] },
+    { "key": "perf_testing", "title": "Performance Testing", "suggestedPercentOfFunctional": 3, "defaultAllocations": [ { "role": "QA", "hours": 1 } ] },
+    { "key": "uat_support", "title": "UAT Support", "suggestedPercentOfFunctional": 3, "defaultAllocations": [ { "role": "QA", "hours": 1 }, { "role": "BA", "hours": 1 } ] },
+    { "key": "training_enablement", "title": "Training & Enablement", "suggestedPercentOfFunctional": 2, "defaultAllocations": [ { "role": "BA", "hours": 1 } ] },
+  { "key": "devops_ci_cd", "title": "DevOps / CI-CD", "suggestedPercentOfFunctional": 5, "defaultAllocations": [ { "role": "DevOps", "hours": 1 } ], "baseline": true },
+    { "key": "environments", "title": "Environment Setup & Maintenance", "suggestedPercentOfFunctional": 3, "defaultAllocations": [ { "role": "DevOps", "hours": 1 } ] },
+    { "key": "data_migration", "title": "Data Migration", "suggestedPercentOfFunctional": 4, "defaultAllocations": [ { "role": "Developer", "hours": 1 }, { "role": "DBA", "hours": 1 } ] },
+    { "key": "accessibility", "title": "Accessibility", "suggestedPercentOfFunctional": 2, "defaultAllocations": [ { "role": "Developer", "hours": 1 }, { "role": "QA", "hours": 1 } ] },
+    { "key": "observability", "title": "Logging, Monitoring & Observability", "suggestedPercentOfFunctional": 2, "defaultAllocations": [ { "role": "Developer", "hours": 1 }, { "role": "DevOps", "hours": 1 } ] },
+  { "key": "release_management", "title": "Release Management", "suggestedPercentOfFunctional": 2, "defaultAllocations": [ { "role": "PM", "hours": 1 } ], "baseline": true },
+    { "key": "risk_contingency", "title": "Risk / Contingency Buffer", "suggestedPercentOfFunctional": 5, "defaultAllocations": [] }
+  ]
+}

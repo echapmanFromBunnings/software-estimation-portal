@@ -1,0 +1,59 @@
+﻿@inherits LayoutComponentBase
+
+<div class="app-container">
+    <!-- Modern Header with Logo and Navigation -->
+    <header class="app-header">
+        <nav class="navbar navbar-expand-lg">
+            <div class="container-fluid">
+                <!-- Logo -->
+                <a class="navbar-brand" href="/">
+                    <div class="logo-container">
+                        <i class="fas fa-calculator logo-icon"></i>
+                        <span class="brand-text">Software Estimator</span>
+                    </div>
+                </a>
+
+                <!-- Mobile Toggle -->
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Navigation Links -->
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">
+                                <i class="fas fa-home me-2"></i>Dashboard
+                            </NavLink>
+                        </li>
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="/estimates">
+                                <i class="fas fa-list-alt me-2"></i>Projects
+                            </NavLink>
+                        </li>
+                    </ul>
+                    
+                    <!-- Header Actions -->
+                    <div class="navbar-nav">
+                        <a class="nav-link" href="/api/backup/export" download title="Export All Data">
+                            <i class="fas fa-download"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <div class="content-wrapper container-fluid">
+            @Body
+        </div>
+    </main>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>

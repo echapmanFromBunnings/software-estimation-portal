@@ -1,0 +1,19 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run app (no launch profile)",
+			"type": "shell",
+			"command": "dotnet run",
+			"args": [
+				"--project",
+				"d:\\repos\\ibs-estimation\\software-estimator\\software-estimator.csproj",
+				"--no-launch-profile"
+			],
+			"problemMatcher": [
+				"$msCompile"
+			],
+			"group": "build"
+		}
+	]
+}

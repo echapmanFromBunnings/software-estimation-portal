@@ -1,0 +1,387 @@
+﻿@page "/"
+@using software_estimator.Data
+@inject AppDbContext Db
+@rendermode InteractiveServer
+
+<PageTitle>Dashboard - Software Estimator</PageTitle>
+
+<div class="page-header estimates-header fade-in">
+    <div class="row align-items-center" style="padding-left: 1.5rem;">
+        <div class="col-lg-8">
+            <h1 class="display-4 fw-bold mb-3">
+                Software Project Estimator
+            </h1>
+            <p class="lead mb-4 opacity-90">
+                Professional estimation tool for software development projects. Create accurate estimates, manage resources, and export detailed reports with confidence.
+            </p>
+            <div class="d-flex gap-3">
+                <a href="/estimates" class="btn btn-light btn-lg">
+                    <i class="fas fa-plus me-2"></i>Create Project
+                </a>
+                <a href="/estimates" class="btn btn-outline-light">
+                    <i class="fas fa-list me-2"></i>View All
+                </a>
+            </div>
+        </div>
+        <div class="col-lg-4 text-center">
+            <div class="hero-icon">
+                <i class="fas fa-calculator fa-5x opacity-20"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-5 fade-in" style="padding-left: 1.5rem; padding-right: 1.5rem;">
+    <div class="col-md-4">
+        <div class="card h-100 text-center border-0">
+            <div class="card-body py-5">
+                <div class="stat-icon mb-4">
+                    <i class="fas fa-project-diagram fa-3x text-primary"></i>
+                </div>
+                <h3 class="fw-bold text-primary mb-2">@totalEstimates</h3>
+                <p class="text-muted mb-0 fw-medium">Total Projects</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card h-100 text-center border-0">
+            <div class="card-body py-5">
+                <div class="stat-icon mb-4">
+                    <i class="fas fa-clock fa-3x text-success"></i>
+                </div>
+                <h3 class="fw-bold text-success mb-2">@recentEstimates</h3>
+                <p class="text-muted mb-0 fw-medium">Recent Projects</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card h-100 text-center border-0">
+            <div class="card-body py-5">
+                <div class="stat-icon mb-4">
+                    <i class="fas fa-check-circle fa-3x text-info"></i>
+                </div>
+                <h3 class="fw-bold text-info mb-2">Ready</h3>
+                <p class="text-muted mb-0 fw-medium">System Status</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4" style="padding-left: 1.5rem; padding-right: 1.5rem;">
+    <div class="col-lg-8">
+        <div class="card border-0">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0 fw-bold">
+                    <i class="fas fa-history me-2 text-primary"></i>
+                    Recent Projects
+                </h5>
+            </div>
+            <div class="card-body">
+                @if (recentProjects.Any())
+                {
+                    <div class="recent-projects">
+                        @foreach (var project in recentProjects.Take(5))
+                        {
+                            <div class="project-item">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <div class="project-avatar me-3">
+                                            <i class="fas fa-folder text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-1 fw-bold text-dark">@project.Name</h6>
+                                            @if (!string.IsNullOrEmpty(project.Client))
+                                            {
+                                                <small class="text-muted">@project.Client</small>
+                                            }
+                                            else
+                                            {
+                                                <small class="text-muted fst-italic">No client</small>
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <small class="text-muted">@project.CreatedAtUtc.ToLocalTime().ToString("MMM dd")</small>
+                                        <a href="/estimate/@project.Id" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-edit me-1"></i>Edit
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    <div class="text-center mt-4">
+                        <a href="/estimates" class="btn btn-primary">
+                            <i class="fas fa-list me-2"></i>View All Projects
+                        </a>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-5">
+                        <i class="fas fa-project-diagram fa-3x text-muted mb-3 opacity-50"></i>
+                        <h6 class="text-muted">No projects yet</h6>
+                        <p class="text-muted mb-3">Start by creating your first software project estimate.</p>
+                        <a href="/estimates" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Create First Project
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card border-0 mb-4">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0 fw-bold">
+                    <i class="fas fa-rocket me-2 text-primary"></i>
+                    Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-3">
+                    <a href="/estimates" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>
+                        New Project
+                    </a>
+                    <a href="/estimates" class="btn btn-outline-secondary">
+                        <i class="fas fa-list me-2"></i>
+                        View All Projects
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card border-0">
+            <div class="card-body text-center">
+                <div class="help-icon mb-3">
+                    <i class="fas fa-info-circle text-primary fa-2x"></i>
+                </div>
+                <h6 class="fw-bold">Need Help?</h6>
+                <p class="text-muted small mb-3">
+                    Create detailed software project estimates with resource allocation, timeline planning, and export capabilities.
+                </p>
+                <button class="btn btn-sm btn-outline-primary" @onclick="ShowInstructions">
+                    <i class="fas fa-question-circle me-1"></i>
+                    View Instructions
+                </button>
+                
+                <!-- Test button to verify interactive mode -->
+                <button class="btn btn-sm btn-warning mt-2" @onclick="TestInteractiveMode">
+                    <i class="fas fa-test-tube me-1"></i>
+                    Test Interactive (@testClickCount clicks)
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Instructions Modal -->
+@if (showInstructionsModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-book-open me-2 text-primary"></i>
+                        How to Use the Software Estimator
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CloseInstructions"></button>
+                </div>
+                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="instruction-section mb-4">
+                                <h6 class="text-primary fw-bold mb-3">
+                                    <i class="fas fa-play-circle me-2"></i>Getting Started
+                                </h6>
+                                <ol class="list-unstyled">
+                                    <li class="mb-2"><strong>1. Navigate to Estimates:</strong> Click "Estimates" in the top navigation</li>
+                                    <li class="mb-2"><strong>2. Create New Project:</strong> Click the "New Estimate" button</li>
+                                    <li class="mb-2"><strong>3. Fill Basic Information:</strong>
+                                        <ul class="mt-2 ms-3">
+                                            <li>Project Name (required)</li>
+                                            <li>Client Organization</li>
+                                            <li>Sprint Length (default: 10 days)</li>
+                                            <li>Team Assignment (from dropdown)</li>
+                                            <li>Contingency Percentage (15-25% recommended)</li>
+                                        </ul>
+                                    </li>
+                                </ol>
+                            </div>
+
+                            <div class="instruction-section mb-4">
+                                <h6 class="text-primary fw-bold mb-3">
+                                    <i class="fas fa-users me-2"></i>Team Assignment & Employment Types
+                                </h6>
+                                <div class="mb-3">
+                                    <p class="mb-2">Teams are pre-configured with employment type classifications:</p>
+                                    <ul class="ms-3">
+                                        <li><strong>Full-Time Employees (FTE):</strong> Permanent staff members</li>
+                                        <li><strong>Contractors:</strong> External consultants and specialists</li>
+                                    </ul>
+                                </div>
+                                <div class="alert alert-info">
+                                    <small><i class="fas fa-info-circle me-2"></i>
+                                    Employment types are automatically displayed in estimate breakdowns and PDF exports for accurate resource planning.
+                                    </small>
+                                </div>
+                            </div>
+
+                            <div class="instruction-section mb-4">
+                                <h6 class="text-primary fw-bold mb-3">
+                                    <i class="fas fa-cogs me-2"></i>Building Your Estimate
+                                </h6>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6 class="fw-bold text-secondary mb-2">Functional Work</h6>
+                                        <ul class="small">
+                                            <li>Add line items for core development work</li>
+                                            <li>Use predefined patterns or create custom items</li>
+                                            <li>Specify sprints required for each component</li>
+                                            <li>Costs calculated automatically based on team rates</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6 class="fw-bold text-secondary mb-2">Supporting Activities</h6>
+                                        <ul class="small">
+                                            <li>Testing & QA activities</li>
+                                            <li>DevOps & deployment setup</li>
+                                            <li>Documentation creation</li>
+                                            <li>Project management overhead</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="instruction-section mb-4">
+                                <h6 class="text-primary fw-bold mb-3">
+                                    <i class="fas fa-dollar-sign me-2"></i>Resource Rates & Cost Calculation
+                                </h6>
+                                <ol class="small">
+                                    <li><strong>Set Resource Rates:</strong> Define hourly/daily rates for each role</li>
+                                    <li><strong>Functional Costs:</strong> Calculated as Sprints × Team Cost per Sprint</li>
+                                    <li><strong>Supporting Costs:</strong> Based on percentage of functional work × role allocations</li>
+                                    <li><strong>Contingency:</strong> Applied to total for risk management</li>
+                                </ol>
+                            </div>
+
+                            <div class="instruction-section mb-4">
+                                <h6 class="text-primary fw-bold mb-3">
+                                    <i class="fas fa-download me-2"></i>Exporting & Sharing
+                                </h6>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="card border">
+                                            <div class="card-body text-center p-3">
+                                                <i class="fas fa-file-pdf text-danger fa-2x mb-2"></i>
+                                                <h6 class="small fw-bold">PDF Export</h6>
+                                                <p class="small text-muted mb-0">Professional client presentations with employment type breakdown</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card border">
+                                            <div class="card-body text-center p-3">
+                                                <i class="fas fa-file-csv text-success fa-2x mb-2"></i>
+                                                <h6 class="small fw-bold">CSV Export</h6>
+                                                <p class="small text-muted mb-0">Spreadsheet format for further analysis</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card border">
+                                            <div class="card-body text-center p-3">
+                                                <i class="fas fa-code text-primary fa-2x mb-2"></i>
+                                                <h6 class="small fw-bold">JSON Export</h6>
+                                                <p class="small text-muted mb-0">Machine-readable for integration</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="instruction-section">
+                                <h6 class="text-primary fw-bold mb-3">
+                                    <i class="fas fa-lightbulb me-2"></i>Tips for Success
+                                </h6>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <ul class="small">
+                                            <li><strong>Start with Templates:</strong> Use predefined patterns as baselines</li>
+                                            <li><strong>Break Down Work:</strong> Create multiple smaller items vs few large ones</li>
+                                            <li><strong>Include Buffer:</strong> Always use 15-25% contingency</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <ul class="small">
+                                            <li><strong>Match Skills:</strong> Ensure teams have required capabilities</li>
+                                            <li><strong>Consider Types:</strong> Account for FTE vs contractor availability</li>
+                                            <li><strong>Regular Backups:</strong> Export estimates for safekeeping</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseInstructions">Close</button>
+                    <a href="/estimates" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Create Your First Project
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private int totalEstimates;
+    private int recentEstimates;
+    private List<software_estimator.Models.Estimate> recentProjects = new();
+    private bool showInstructionsModal = false;
+    private int testClickCount = 0;
+
+    protected override void OnInitialized()
+    {
+        LoadDashboardData();
+    }
+
+    private void LoadDashboardData()
+    {
+        var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
+        
+        totalEstimates = Db.Estimates.Count();
+        recentEstimates = Db.Estimates.Count(e => e.CreatedAtUtc >= thirtyDaysAgo);
+        recentProjects = Db.Estimates
+            .OrderByDescending(e => e.CreatedAtUtc)
+            .Take(10)
+            .ToList();
+    }
+
+    private void ShowInstructions()
+    {
+        Console.WriteLine("ShowInstructions called");
+        showInstructionsModal = true;
+        StateHasChanged();
+    }
+
+    private void CloseInstructions()
+    {
+        Console.WriteLine("CloseInstructions called");
+        showInstructionsModal = false;
+        StateHasChanged();
+    }
+    
+    private void TestInteractiveMode()
+    {
+        testClickCount++;
+        Console.WriteLine($"Test Interactive Mode clicked! Count: {testClickCount}");
+        StateHasChanged();
+    }
+}

@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "patterns": [
+    { "key": "crud_entity", "title": "CRUD Entity", "averageSprints": 0.5, "notes": "Create, list, update, delete for simple entity" },
+    { "key": "auth_integration", "title": "Auth Integration", "averageSprints": 1.0, "notes": "Integrate with SSO/OAuth provider" },
+    { "key": "report_page", "title": "Reporting Page", "averageSprints": 0.75, "notes": "One complex page with filters and export" },
+
+    { "key": "new_domain_standup", "title": "New domain standup", "averageSprints": 1.0, "notes": "Initial domain bootstrap (repo, pipelines, basic scaffolding)" },
+    { "key": "api_get_new_endpoint", "title": "API GET new endpoint", "averageSprints": 1.0, "notes": "New read endpoint including routing, handler, tests" },
+    { "key": "api_put_post_new_endpoint", "title": "API PUT/POST new endpoint (includes a GET)", "averageSprints": 2.0, "notes": "Create/update endpoint including validation, persistence, and a supporting GET" },
+    { "key": "export_core_to_solace", "title": "Export data from Core systems to Solace", "averageSprints": 2.0, "notes": "Produce messages to Solace from Core system data" },
+    { "key": "ingest_to_read_replica", "title": "Ingest data into read replica", "averageSprints": 1.5, "notes": "Pipeline to land data into read replica with schema mapping" },
+    { "key": "auth_client_setup", "title": "Authorisation client setup", "averageSprints": 1.0, "notes": "Configure client app registration, scopes, secrets" },
+    { "key": "new_export_from_eddh", "title": "New export from EDDH", "averageSprints": 2.0, "notes": "Define and publish new dataset export from EDDH" },
+    { "key": "new_ingestion_into_eddh_from_solace", "title": "New ingestion into EDDH from Solace", "averageSprints": 1.5, "notes": "Subscribe to Solace and ingest into EDDH with validation" },
+    { "key": "p2p_solace_to_platform_dotnet", "title": "Point to Point from Solace to Platform and .NET", "averageSprints": 3.0, "notes": "End-to-end P2P integration from Solace to Platform service (.NET)" },
+    { "key": "p2p_solace_to_blob", "title": "Point to point from Solace to blob storage", "averageSprints": 1.0, "notes": "Subscribe and land payloads into blob storage" },
+    { "key": "informatica_replication_cih", "title": "Informatica replication for a new table via CIH", "averageSprints": 2.0, "notes": "Configure Informatica CIH for new table replication" },
+    { "key": "informatica_replication_idmc", "title": "Informatica replication for a new table via IDMC", "averageSprints": 1.0, "notes": "Configure Informatica IDMC for new table replication" }
+  ]
+}

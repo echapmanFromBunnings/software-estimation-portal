@@ -1,0 +1,558 @@
+@page "/estimate/{Id:guid}"
+@using software_estimator.Data
+@using software_estimator.Models
+@using software_estimator.Services
+@using System.Linq
+@inject AppDbContext Db
+@inject IPatternConfigService Patterns
+@inject ISupportingConfigService Supporting
+@inject ITeamConfigService Teams
+@inject ICostCalculator Cost
+@inject Microsoft.AspNetCore.Components.NavigationManager Nav
+@rendermode InteractiveServer
+
+@if (estimate is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <h3>Edit Estimate</h3>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label">Name</label>
+            <input class="form-control" @bind="estimate.Name" />
+            @if (string.IsNullOrWhiteSpace(estimate.Name))
+            {
+                <div class="text-danger small">Name is required.</div>
+            }
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Program Manager</label>
+            <input class="form-control" @bind="estimate.Client" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Assigned Team (Optional)</label>
+            <select class="form-select" @bind="estimate.TeamId">
+                <option value="">-- Select Team --</option>
+                @foreach (var team in availableTeams)
+                {
+                    <option value="@team.Key">@team.Value</option>
+                }
+            </select>
+            @if (!string.IsNullOrEmpty(estimate.TeamId) && teamDetails.ContainsKey(estimate.TeamId))
+            {
+                var team = teamDetails[estimate.TeamId];
+                <div class="mt-2">
+                    <small class="text-muted d-block">
+                        <i class="fas fa-users me-1"></i>@team.Description
+                    </small>
+                    <small class="text-info d-block">
+                        <i class="fas fa-briefcase me-1"></i>@team.FullTimeCount FTE, @team.ContractorCount Contractor
+                    </small>
+                    <small class="text-success d-block">
+                        <i class="fas fa-cogs me-1"></i>Skills: @string.Join(", ", (IEnumerable<string>)team.Skills)
+                    </small>
+                </div>
+            }
+            else if (!string.IsNullOrEmpty(estimate.TeamId))
+            {
+                <small class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Team not found</small>
+            }
+        </div>
+    </div>
+    <div class="row g-3 mt-2">
+        <div class="col-md-4">
+            <label class="form-label">Sprint length (days)</label>
+            <input type="number" min="1" class="form-control" @bind="estimate.SprintLengthDays" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Contingency (%)</label>
+            <input type="number" step="0.1" min="0" max="100" class="form-control" @bind="estimate.ContingencyPercent" />
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <h5>Resource Rates</h5>
+        <button class="btn btn-sm btn-outline-primary" @onclick="AddRate">Add Rate</button>
+        <table class="table table-sm mt-2">
+            <thead><tr><th>Role</th><th>Type</th><th>Daily</th><th>Hourly</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var r in estimate.ResourceRates)
+                {
+                    <tr>
+                        <td><input class="form-control form-control-sm" @bind="r.Role" /></td>
+                        <td>
+                            <select class="form-select form-select-sm" @bind="r.Type">
+                                <option value="FTE">FTE</option>
+                                <option value="Contractor">Contractor</option>
+                            </select>
+                        </td>
+                        <td><input type="number" min="0" class="form-control form-control-sm" @bind="r.DailyRate" /></td>
+                        <td><input type="number" min="0" class="form-control form-control-sm" @bind="r.HourlyRate" /></td>
+                        <td><button class="btn btn-sm btn-outline-danger" @onclick="(() => RemoveRate(r))">Remove</button></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        @if (UnknownRoles.Any())
+        {
+            <div class="alert alert-warning mt-2">
+                <div><strong>Unmapped roles detected:</strong> map them to an existing rate to use correct costs.</div>
+                @foreach (var ur in UnknownRoles)
+                {
+                    <div class="d-flex align-items-center gap-2 mt-1">
+                        <span class="badge text-bg-warning">@ur</span>
+                        <span>→</span>
+                        <select class="form-select form-select-sm" style="max-width:200px" @onchange="(e => MapRole(ur, e.Value?.ToString()))">
+                            <option value="">-- select rate role --</option>
+                            @foreach (var r in estimate.ResourceRates)
+                            {
+                                <option value="@r.Role">@r.Role</option>
+                            }
+                        </select>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <div class="mt-4">
+        <h5>Functional Work</h5>
+        <div class="d-flex gap-2">
+            <input class="form-control" placeholder="Custom title" @bind="newCustomTitle" />
+            <button class="btn btn-outline-primary" @onclick="AddCustomLine">Add Custom</button>
+            <select class="form-select" @bind="selectedPatternKey">
+                <option value="">Select common pattern...</option>
+                @foreach (var p in patterns)
+                {
+                    <option value="@p.Key">@p.Title (@p.AverageSprints sprints)</option>
+                }
+            </select>
+            <button class="btn btn-outline-secondary" @onclick="AddPatternLine">Add Pattern</button>
+        </div>
+        <table class="table table-sm mt-2">
+            <thead><tr><th>Title</th><th>Outcome</th><th>Source</th><th>Sprints</th><th>Avg</th><th>Flag</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var f in estimate.FunctionalItems)
+                {
+                    <tr>
+                        <td><input class="form-control form-control-sm" @bind="f.Title" /></td>
+                        <td><input class="form-control form-control-sm" @bind="f.Outcome" /></td>
+                        <td>@f.SourceType</td>
+                        <td><input type="number" step="0.25" min="0" class="form-control form-control-sm" @bind="f.Sprints" @bind:after="() => UpdateDeviation(f)" /></td>
+                        <td>@(f.AverageSprints?.ToString() ?? "-")</td>
+                        <td>@(f.IsDeviationFlagged ? "⚠" : "")</td>
+                        <td><button class="btn btn-sm btn-outline-danger" @onclick="(() => RemoveFunctional(f))">Remove</button></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mt-4">
+        <h5>Non-Functional / Supporting</h5>
+        <div class="d-flex gap-2 align-items-center mb-2">
+            <button class="btn btn-sm btn-outline-primary" @onclick="AddNonFunctional">Add Item</button>
+            <select class="form-select form-select-sm" style="max-width: 300px;" @bind="selectedSupportKey">
+                <option value="">Add from supporting activities...</option>
+                @foreach (var a in supportActivities)
+                {
+                    <option value="@a.Key">@a.Title @((a.SuggestedPercentOfFunctional is not null ? $"({a.SuggestedPercentOfFunctional}% of functional)" : string.Empty))</option>
+                }
+            </select>
+            <button class="btn btn-sm btn-outline-secondary" @onclick="AddSelectedSupport">Add Selected</button>
+            <button class="btn btn-sm btn-outline-secondary" @onclick="AddAllSupport">Add All Suggested</button>
+        </div>
+        <table class="table table-sm table-bordered">
+            <thead class="table-light">
+                <tr>
+                    <th>Title</th>
+                    <th>Allocations (Role → Hours)</th>
+                    <th>Item Cost</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var n in estimate.NonFunctionalItems)
+                {
+                    <tr>
+                        <td style="width: 25%;"><input class="form-control form-control-sm" @bind-value="n.Title" /></td>
+                        <td>
+                            @foreach (var a in n.Allocations)
+                            {
+                                <div class="d-flex gap-2 align-items-center mb-1">
+                                    <select class="form-select form-select-sm" @bind="a.Role" @bind:after="StateHasChanged" style="width: 150px;">
+                                        @foreach (var r in estimate.ResourceRates)
+                                        {
+                                            <option value="@r.Role">@r.Role</option>
+                                        }
+                                    </select>
+                                    <input type="number" step="0.5" min="0" class="form-control form-control-sm" @bind="a.Hours" style="width: 80px;" />
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="(() => RemoveAllocation(n, a))"><i class="fas fa-trash"></i></button>
+                                </div>
+                            }
+                            <button class="btn btn-sm btn-outline-secondary mt-1" @onclick="(() => AddAllocation(n))"><i class="fas fa-plus"></i> Add Role</button>
+                        </td>
+                        <td style="width: 15%;">@Cost.CalcNonFunctionalCost(n, estimate.ResourceRates, estimate.RoleMappings).ToString("C")</td>
+                        <td style="width: 5%;">
+                            <button class="btn btn-sm btn-outline-danger" @onclick="(() => RemoveNonFunctional(n))"><i class="fas fa-times"></i> Remove</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mt-4">
+        <h5>Totals</h5>
+        <div class="card">
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-3">Functional Subtotal</dt>
+                    <dd class="col-sm-9">@FunctionalSubtotal.ToString("C")</dd>
+
+                    <dt class="col-sm-3">Non-functional Subtotal</dt>
+                    <dd class="col-sm-9">@NonFunctionalSubtotal.ToString("C")</dd>
+
+                    <dt class="col-sm-3">Subtotal</dt>
+                    <dd class="col-sm-9">@Subtotal.ToString("C")</dd>
+
+                    <dt class="col-sm-3">Contingency (@estimate.ContingencyPercent%)</dt>
+                    <dd class="col-sm-9">@((Total - Subtotal).ToString("C"))</dd>
+
+                    <dt class="col-sm-3 border-top pt-2 mt-2">Total</dt>
+                    <dd class="col-sm-9 border-top pt-2 mt-2"><strong>@Total.ToString("C")</strong></dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-3 d-flex gap-2">
+    <button class="btn btn-primary" @onclick="Save" disabled="@(IsValid ? null : true)">Save</button>
+        <button class="btn btn-secondary" @onclick="Clone">Clone</button>
+        <button class="btn btn-outline-secondary" @onclick="AddSuggestedOverheads">Add Suggested Overheads</button>
+        <a class="btn btn-outline-success" href="/api/estimates/@Id/json" target="_blank">Export JSON</a>
+        <a class="btn btn-outline-success" href="/api/estimates/@Id/csv" target="_blank">Export CSV</a>
+        <a class="btn btn-outline-success" href="/api/estimates/@Id/pdf" target="_blank">Export PDF</a>
+        <a class="btn btn-outline-dark" href="/estimates">Back</a>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private Estimate? estimate;
+    private List<CommonPattern> patterns = new();
+    private List<SupportingActivity> supportActivities = new();
+    private Dictionary<string, string> availableTeams = new();
+    private Dictionary<string, dynamic> teamDetails = new();
+    private string? newCustomTitle;
+    private string? selectedPatternKey;
+
+    protected override async Task OnInitializedAsync()
+    {
+        estimate = Db.Estimates
+            .Where(e => e.Id == Id)
+            .Select(e => e)
+            .FirstOrDefault();
+        if (estimate is null)
+        {
+            // Redirect to list if not found
+            Nav.NavigateTo("/estimates");
+            return;
+        }
+        // Load related collections
+        Db.Entry(estimate).Collection(e => e.FunctionalItems).Load();
+        Db.Entry(estimate).Collection(e => e.NonFunctionalItems).Load();
+        foreach (var n in estimate.NonFunctionalItems)
+        {
+            Db.Entry(n).Collection(x => x.Allocations).Load();
+        }
+        Db.Entry(estimate).Collection(e => e.ResourceRates).Load();
+        Db.Entry(estimate).Collection(e => e.RoleMappings).Load();
+        patterns = (await Patterns.GetPatternsAsync()).ToList();
+        supportActivities = (await Supporting.GetActivitiesAsync()).ToList();
+        
+        // Load teams in a simple way
+        await LoadTeams();
+    }
+
+    private async Task LoadTeams()
+    {
+        try
+        {
+            var teams = await Teams.GetActiveTeamsAsync();
+            availableTeams = teams.ToDictionary(t => t.Id, t => $"{t.Name} ({GetSimpleTeamSummary(t)})");
+            
+            foreach (var team in teams)
+            {
+                teamDetails[team.Id] = new 
+                { 
+                    Name = team.Name, 
+                    Description = team.Description, 
+                    Skills = team.Skills,
+                    MemberCount = team.Roles.Sum(r => r.Count),
+                    FullTimeCount = team.Roles.Where(r => r.EmploymentType == "FullTime").Sum(r => r.Count),
+                    ContractorCount = team.Roles.Where(r => r.EmploymentType == "Contractor").Sum(r => r.Count)
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading teams: {ex.Message}");
+            availableTeams = new();
+            teamDetails = new();
+        }
+    }
+
+    private string GetSimpleTeamSummary(dynamic team)
+    {
+        try
+        {
+            var roles = team.Roles as IEnumerable<dynamic>;
+            var memberCount = roles?.Sum(r => (int)r.Count) ?? 0;
+            var roleTypes = roles?.Select(r => (string)r.Role).Distinct().Count() ?? 0;
+            return $"{memberCount} members, {roleTypes} roles";
+        }
+        catch
+        {
+            return "Team info";
+        }
+    }
+
+    private void AddRate()
+    {
+        estimate!.ResourceRates.Add(new ResourceRate { Role = "Role", DailyRate = 800 });
+    }
+    private void RemoveRate(ResourceRate r)
+    {
+        estimate!.ResourceRates.Remove(r);
+    }
+
+    private void AddCustomLine()
+    {
+        if (string.IsNullOrWhiteSpace(newCustomTitle)) return;
+        estimate!.FunctionalItems.Add(new FunctionalLineItem { Title = newCustomTitle!, SourceType = LineSourceType.Custom, Sprints = 0.5m });
+        newCustomTitle = string.Empty;
+    }
+
+    private void AddPatternLine()
+    {
+        if (string.IsNullOrWhiteSpace(selectedPatternKey)) return;
+        var p = patterns.FirstOrDefault(x => x.Key == selectedPatternKey);
+        if (p is null) return;
+        var item = new FunctionalLineItem
+        {
+            Title = p.Title,
+            SourceType = LineSourceType.CommonPattern,
+            PatternKey = p.Key,
+            AverageSprints = p.AverageSprints,
+            Sprints = p.AverageSprints
+        };
+        item.IsDeviationFlagged = Cost.IsDeviation(item.AverageSprints, item.Sprints);
+        estimate!.FunctionalItems.Add(item);
+    }
+
+    private void RemoveFunctional(FunctionalLineItem f)
+    {
+        estimate!.FunctionalItems.Remove(f);
+    }
+
+    private void UpdateDeviation(FunctionalLineItem f)
+    {
+        f.IsDeviationFlagged = Cost.IsDeviation(f.AverageSprints, f.Sprints);
+    }
+
+    private void AddNonFunctional()
+    {
+        estimate!.NonFunctionalItems.Add(new NonFunctionalItem { Title = "Meetings" });
+    }
+
+    private string? selectedSupportKey;
+    private void AddSelectedSupport()
+    {
+        if (string.IsNullOrWhiteSpace(selectedSupportKey)) return;
+        var act = supportActivities.FirstOrDefault(a => a.Key == selectedSupportKey);
+        if (act is null) return;
+        AddSupportActivity(act);
+        selectedSupportKey = string.Empty;
+    }
+
+    private void AddAllSupport()
+    {
+        foreach (var act in supportActivities)
+        {
+            AddSupportActivity(act);
+        }
+    }
+
+    private void AddSupportActivity(SupportingActivity act)
+    {
+        if (estimate!.NonFunctionalItems.Any(n => n.Title.Equals(act.Title, StringComparison.OrdinalIgnoreCase))) return;
+        var item = new NonFunctionalItem { Title = act.Title };
+
+        // Start with roles from defaults if present; otherwise pick a reasonable role
+        var roles = new List<(string role, decimal weight)>();
+        if (act.DefaultAllocations is { Count: > 0 })
+        {
+            var totalWeight = act.DefaultAllocations.Sum(a => a.Hours > 0 ? a.Hours : 0);
+            foreach (var da in act.DefaultAllocations)
+            {
+                var w = da.Hours > 0 ? da.Hours : 0;
+                roles.Add((da.Role, w));
+            }
+            // If all weights are zero, distribute equally
+            if (totalWeight == 0 && roles.Count > 0)
+            {
+                for (int i = 0; i < roles.Count; i++) roles[i] = (roles[i].role, 1);
+            }
+        }
+        else
+        {
+            // Fallback to Developer role if present; else first available role; else empty
+            var dev = estimate.ResourceRates.FirstOrDefault(r => r.Role.Equals("Developer", StringComparison.OrdinalIgnoreCase))?.Role
+                      ?? estimate.ResourceRates.FirstOrDefault()?.Role;
+            if (!string.IsNullOrWhiteSpace(dev)) roles.Add((dev!, 1));
+        }
+
+        // Try to compute hours from suggested percent of functional subtotal
+        var pct = act.SuggestedPercentOfFunctional ?? 0m;
+        var canCompute = pct > 0 && FunctionalSubtotal > 0 && estimate.ResourceRates.Any();
+        if (canCompute && roles.Count > 0)
+        {
+            var targetCost = FunctionalSubtotal * (pct / 100m);
+            var totalWeight = roles.Sum(r => r.weight);
+            if (totalWeight == 0) totalWeight = roles.Count; // equal split fallback
+
+            // Average hourly fallback if a role has no rate
+            decimal avgHourly = 0m;
+            if (estimate.ResourceRates.Any())
+            {
+                var hourlies = estimate.ResourceRates.Select(r => r.HourlyRate > 0 ? r.HourlyRate : (r.DailyRate > 0 ? r.DailyRate / 8m : 0m))
+                                                     .Where(h => h > 0).ToList();
+                avgHourly = hourlies.Count > 0 ? hourlies.Average() : 0m;
+            }
+
+            foreach (var (role, weight) in roles)
+            {
+                var mappedRole = ResolveRole(role);
+                var rate = estimate.ResourceRates.FirstOrDefault(r => r.Role.Equals(mappedRole, StringComparison.OrdinalIgnoreCase));
+                var hourly = rate is not null
+                    ? (rate.HourlyRate > 0 ? rate.HourlyRate : (rate.DailyRate > 0 ? rate.DailyRate / 8m : 0m))
+                    : 0m;
+                if (hourly <= 0) hourly = avgHourly;
+                var shareCost = targetCost * (weight / totalWeight);
+                var hours = hourly > 0 ? Math.Round(shareCost / hourly, 1, MidpointRounding.AwayFromZero) : 0m;
+                item.Allocations.Add(new ResourceAllocation { Role = mappedRole ?? role, Hours = hours });
+            }
+        }
+        else
+        {
+            // No computation possible: just add zero-hour allocations for roles
+            foreach (var (role, _) in roles)
+            {
+                item.Allocations.Add(new ResourceAllocation { Role = ResolveRole(role) ?? role, Hours = 0 });
+            }
+        }
+
+        estimate.NonFunctionalItems.Add(item);
+    }
+
+    private void RemoveNonFunctional(NonFunctionalItem n)
+    {
+        estimate!.NonFunctionalItems.Remove(n);
+    }
+
+    private void AddAllocation(NonFunctionalItem n)
+    {
+        n.Allocations.Add(new ResourceAllocation { Role = estimate!.ResourceRates.FirstOrDefault()?.Role ?? "Role", Hours = 1 });
+    }
+
+    private void RemoveAllocation(NonFunctionalItem n, ResourceAllocation a)
+    {
+        n.Allocations.Remove(a);
+    }
+
+    private SquadComposition Squad => new SquadComposition(
+        estimate!.ResourceRates.Count(r => r.Type == ResourceType.FTE),
+        estimate!.ResourceRates.Count(r => r.Type == ResourceType.Contractor),
+        estimate!.ResourceRates.Where(r => r.Type == ResourceType.FTE).DefaultIfEmpty(new ResourceRate { DailyRate = 0 }).Average(r => r.DailyRate),
+        estimate!.ResourceRates.Where(r => r.Type == ResourceType.Contractor).DefaultIfEmpty(new ResourceRate { DailyRate = 0 }).Average(r => r.DailyRate),
+        estimate!.SprintLengthDays
+    );
+
+    private decimal SquadPerSprint => Cost.CalcSquadCostPerSprint(Squad);
+    private decimal FunctionalSubtotal => estimate is null ? 0 : estimate.FunctionalItems.Sum(f => Cost.CalcFunctionalLineCost(f.Sprints, SquadPerSprint));
+    private decimal NonFunctionalSubtotal => estimate is null ? 0 : estimate.NonFunctionalItems.Sum(n => Cost.CalcNonFunctionalCost(n, estimate.ResourceRates, estimate.RoleMappings));
+    private decimal Subtotal => FunctionalSubtotal + NonFunctionalSubtotal;
+    private decimal Total => estimate is null ? 0 : Cost.ApplyContingency(Subtotal, estimate.ContingencyPercent);
+
+    private async Task Save()
+    {
+        // persist mappings
+        await Db.SaveChangesAsync();
+        estimate!.UpdatedAtUtc = DateTime.UtcNow;
+        await Db.SaveChangesAsync();
+    }
+
+    private async Task Clone()
+    {
+        var clone = new Estimate
+        {
+            Name = estimate!.Name + " (Clone)",
+            Client = estimate.Client,
+            SprintLengthDays = estimate.SprintLengthDays,
+            ContingencyPercent = estimate.ContingencyPercent,
+            Version = estimate.Version + 1,
+            ClonedFromEstimateId = estimate.Id
+        };
+        foreach (var r in estimate.ResourceRates)
+            clone.ResourceRates.Add(new ResourceRate { Role = r.Role, Type = r.Type, DailyRate = r.DailyRate, HourlyRate = r.HourlyRate });
+        foreach (var f in estimate.FunctionalItems)
+            clone.FunctionalItems.Add(new FunctionalLineItem { Title = f.Title, SourceType = f.SourceType, PatternKey = f.PatternKey, AverageSprints = f.AverageSprints, Sprints = f.Sprints });
+        foreach (var n in estimate.NonFunctionalItems)
+        {
+            var newN = new NonFunctionalItem { Title = n.Title };
+            foreach (var a in n.Allocations)
+                newN.Allocations.Add(new ResourceAllocation { Role = a.Role, Hours = a.Hours });
+            clone.NonFunctionalItems.Add(newN);
+        }
+        Db.Estimates.Add(clone);
+        await Db.SaveChangesAsync();
+        Nav.NavigateTo($"/estimate/{clone.Id}");
+    }
+
+    private void AddSuggestedOverheads() => AddAllSupport();
+
+    // Role mapping helpers
+    private IEnumerable<string> UnknownRoles => estimate is null
+        ? Enumerable.Empty<string>()
+        : estimate.NonFunctionalItems.SelectMany(n => n.Allocations.Select(a => a.Role))
+            .Where(role => estimate.ResourceRates.All(r => !r.Role.Equals(role, StringComparison.OrdinalIgnoreCase)))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Except(estimate.RoleMappings.Select(m => m.SourceRole), StringComparer.OrdinalIgnoreCase);
+
+    private string? ResolveRole(string source)
+    {
+        var map = estimate?.RoleMappings.FirstOrDefault(m => m.SourceRole.Equals(source, StringComparison.OrdinalIgnoreCase));
+        return map?.TargetRole ?? source;
+    }
+
+    private void MapRole(string sourceRole, string? targetRole)
+    {
+        if (estimate is null) return;
+        if (string.IsNullOrWhiteSpace(targetRole)) return;
+        var existing = estimate.RoleMappings.FirstOrDefault(m => m.SourceRole.Equals(sourceRole, StringComparison.OrdinalIgnoreCase));
+        if (existing is null)
+        {
+            estimate.RoleMappings.Add(new RoleMapping { SourceRole = sourceRole, TargetRole = targetRole });
+        }
+        else
+        {
+            existing.TargetRole = targetRole;
+        }
+        StateHasChanged();
+    }
+
+    private bool IsValid => estimate is not null && !string.IsNullOrWhiteSpace(estimate.Name) && estimate.SprintLengthDays > 0 && estimate.ContingencyPercent >= 0 && estimate.ContingencyPercent <= 100;
+}

@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "teams": [
+    {
+      "id": "team-alpha",
+      "name": "Alpha Squad",
+      "description": "Full-stack development team specializing in web applications",
+      "skills": ["C#", ".NET", "React", "SQL Server", "Azure"],
+      "capabilities": ["Frontend Development", "Backend Development", "Database Design", "API Development", "Cloud Deployment"],
+      "roles": [
+        { "role": "Developer", "count": 4, "seniority": "Mixed", "employmentType": "FullTime" },
+        { "role": "QA", "count": 2, "seniority": "Senior", "employmentType": "FullTime" },
+        { "role": "DevOps", "count": 1, "seniority": "Senior", "employmentType": "FullTime" },
+        { "role": "PM", "count": 1, "seniority": "Senior", "employmentType": "FullTime" },
+        { "role": "BA", "count": 1, "seniority": "Mid", "employmentType": "FullTime" }
+      ],
+      "active": true
+    },
+    {
+      "id": "team-beta",
+      "name": "Beta Squad",
+      "description": "Mobile-focused development team with cross-platform expertise",
+      "skills": ["React Native", "Flutter", "Swift", "Kotlin", "Firebase"],
+      "capabilities": ["Mobile Development", "Cross-platform Apps", "Mobile UI/UX", "App Store Deployment"],
+      "roles": [
+        { "role": "Developer", "count": 3, "seniority": "Senior", "employmentType": "FullTime" },
+        { "role": "QA", "count": 1, "seniority": "Mid", "employmentType": "Contractor" },
+        { "role": "Designer", "count": 1, "seniority": "Senior", "employmentType": "FullTime" },
+        { "role": "DevOps", "count": 1, "seniority": "Mid", "employmentType": "Contractor" }
+      ],
+      "active": true
+    },
+    {
+      "id": "team-gamma",
+      "name": "Gamma Squad",
+      "description": "Enterprise integration and data platform team",
+      "skills": ["Java", "Spring Boot", "Microservices", "Kafka", "PostgreSQL", "Docker"],
+      "capabilities": ["Enterprise Integration", "Data Processing", "Microservices Architecture", "API Gateway"],
+      "roles": [
+        { "role": "Architect", "count": 1, "seniority": "Senior", "employmentType": "FullTime" },
+        { "role": "Developer", "count": 5, "seniority": "Mixed", "employmentType": "FullTime" },
+        { "role": "QA", "count": 2, "seniority": "Mid", "employmentType": "FullTime" },
+        { "role": "DevOps", "count": 2, "seniority": "Senior", "employmentType": "FullTime" },
+        { "role": "DBA", "count": 1, "seniority": "Senior", "employmentType": "Contractor" }
+      ],
+      "active": true
+    },
+    {
+      "id": "team-delta",
+      "name": "Delta Squad",
+      "description": "Frontend specialists and UX-focused development team",
+      "skills": ["React", "Vue.js", "TypeScript", "Sass", "Figma", "Storybook"],
+      "capabilities": ["Frontend Development", "UI/UX Design", "Component Libraries", "Design Systems"],
+      "roles": [
+        { "role": "Developer", "count": 3, "seniority": "Senior", "employmentType": "FullTime" },
+        { "role": "Designer", "count": 2, "seniority": "Senior", "employmentType": "Contractor" },
+        { "role": "QA", "count": 1, "seniority": "Mid", "employmentType": "FullTime" }
+      ],
+      "active": true
+    },
+    {
+      "id": "team-consulting",
+      "name": "Consulting Team",
+      "description": "Flexible consulting team for specialized requirements",
+      "skills": ["Multiple Technologies", "Advisory", "Architecture Review"],
+      "capabilities": ["Technical Consulting", "Architecture Review", "Code Audit", "Performance Optimization"],
+      "roles": [
+        { "role": "Architect", "count": 2, "seniority": "Senior", "employmentType": "Contractor" },
+        { "role": "Consultant", "count": 3, "seniority": "Senior", "employmentType": "Contractor" },
+        { "role": "Security", "count": 1, "seniority": "Senior", "employmentType": "Contractor" }
+      ],
+      "active": false
+    }
+  ]
+}

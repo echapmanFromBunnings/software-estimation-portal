@@ -1,0 +1,316 @@
+@page "/estimates"
+@using software_estimator.Data
+@using software_estimator.Models
+@using Microsoft.AspNetCore.Components.Forms
+@inject AppDbContext DbContext
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<PageTitle>Estimates - Software Estimator</PageTitle>
+
+<div class="estimates-header fade-in">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="mb-2 fw-bold">Project Estimates</h2>
+            <p class="mb-0 opacity-90">Create, manage, and export your software project estimates</p>
+        </div>
+        <div class="d-none d-md-block">
+            <i class="fas fa-calculator fa-3x opacity-50"></i>
+        </div>
+    </div>
+</div>
+
+<div class="estimates-actions fade-in">
+    <div class="row align-items-center g-3">
+        <div class="col-md-6">
+            <button class="btn btn-primary btn-lg" @onclick="CreateNew" disabled="@isBusy">
+                @if (isBusy)
+                {
+                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                    <span>Creating...</span>
+                }
+                else
+                {
+                    <i class="fas fa-plus me-2"></i>
+                    <span>New Project</span>
+                }
+            </button>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="d-flex gap-3 justify-content-md-end">
+                <div class="file-upload-container">
+                    <InputFile OnChange="OnImportFileSelected" class="form-control form-control-sm" accept=".json" />
+                    <button class="btn btn-outline-primary btn-sm" @onclick="ImportSelected" disabled="@(importJson is null || isBusy)">
+                        <i class="fas fa-upload me-1"></i>Import
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(importMessage))
+{
+    <div class="alert @importAlertClass fade-in" role="alert">
+        <i class="fas @GetAlertIcon() me-2"></i>@importMessage
+    </div>
+}
+
+@if (!estimates.Any())
+{
+    <div class="card text-center py-5 fade-in">
+        <div class="card-body">
+            <div class="empty-state">
+                <i class="fas fa-calculator fa-4x text-muted mb-4 opacity-50"></i>
+                <h4 class="text-muted mb-3">No Projects Yet</h4>
+                <p class="text-muted mb-4 lead">Get started by creating your first software project estimate.</p>
+                <button class="btn btn-primary btn-lg" @onclick="CreateNew" disabled="@isBusy">
+                    <i class="fas fa-plus me-2"></i>Create Your First Project
+                </button>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card fade-in">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-project-diagram me-2"></i>All Projects
+                </h5>
+                <span class="badge bg-primary rounded-pill">@estimates.Count</span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th class="border-0 px-4 py-3">
+                                <i class="fas fa-project-diagram me-2 text-primary"></i>Project
+                            </th>
+                            <th class="border-0 px-4 py-3">
+                                <i class="fas fa-building me-2 text-primary"></i>Client
+                            </th>
+                            <th class="border-0 px-4 py-3">
+                                <i class="fas fa-calendar me-2 text-primary"></i>Created
+                            </th>
+                            <th class="border-0 px-4 py-3 text-center">
+                                <i class="fas fa-tools me-2 text-primary"></i>Actions
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var e in estimates)
+                        {
+                            <tr class="border-0">
+                                <td class="px-4 py-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="project-icon me-3">
+                                            <i class="fas fa-folder text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-dark">@e.Name</div>
+                                            @if (e.ClonedFromEstimateId.HasValue)
+                                            {
+                                                <small class="badge bg-secondary">
+                                                    <i class="fas fa-copy me-1"></i>Clone
+                                                </small>
+                                            }
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3">
+                                    @if (!string.IsNullOrEmpty(e.Client))
+                                    {
+                                        <span class="text-dark fw-medium">@e.Client</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted fst-italic">No client specified</span>
+                                    }
+                                </td>
+                                <td class="px-4 py-3">
+                                    <div class="text-dark fw-medium">@e.CreatedAtUtc.ToLocalTime().ToString("MMM dd, yyyy")</div>
+                                    <small class="text-muted">@e.CreatedAtUtc.ToLocalTime().ToString("HH:mm")</small>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <div class="d-flex gap-2 justify-content-center">
+                                        <a class="btn btn-primary btn-sm" href="/estimate/@e.Id" title="Edit project">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <div class="dropdown">
+                                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                                <i class="fas fa-download"></i>
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li><a class="dropdown-item" href="/api/estimates/@e.Id/json" target="_blank">
+                                                    <i class="fas fa-code me-2"></i>JSON
+                                                </a></li>
+                                                <li><a class="dropdown-item" href="/api/estimates/@e.Id/csv" target="_blank">
+                                                    <i class="fas fa-table me-2"></i>CSV
+                                                </a></li>
+                                                <li><a class="dropdown-item" href="/api/estimates/@e.Id/pdf" target="_blank">
+                                                    <i class="fas fa-file-pdf me-2"></i>PDF
+                                                </a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Estimate> estimates = new();
+    private bool isBusy;
+    private IBrowserFile? importFile;
+    private string? importJson;
+    private string? importMessage;
+    private string importAlertClass = "alert-info";
+
+    protected override Task OnInitializedAsync()
+    {
+        LoadList();
+        return Task.CompletedTask;
+    }
+
+    private void LoadList()
+    {
+        estimates = DbContext.Estimates.OrderByDescending(e => e.CreatedAtUtc).ToList();
+        StateHasChanged();
+    }
+
+    private string GetAlertIcon()
+    {
+        return importAlertClass switch
+        {
+            "alert-success" => "fa-check-circle",
+            "alert-danger" => "fa-exclamation-triangle",
+            "alert-warning" => "fa-exclamation-circle",
+            _ => "fa-info-circle"
+        };
+    }
+
+    private async Task CreateNew()
+    {
+        if (isBusy) return;
+        try
+        {
+            Console.WriteLine("CreateNew called - starting");
+            isBusy = true;
+            importMessage = null;
+            StateHasChanged();
+            
+            var est = new Estimate 
+            { 
+                Name = "New Draft Estimate", 
+                Client = "",
+                CreatedAtUtc = DateTime.UtcNow,
+                UpdatedAtUtc = DateTime.UtcNow,
+                Version = 1
+            };
+            
+            Console.WriteLine("CreateNew - adding to database");
+            
+            // Add baseline supporting activities when service is available
+            
+            DbContext.Estimates.Add(est);
+            await DbContext.SaveChangesAsync();
+            
+            Console.WriteLine($"CreateNew - saved estimate with ID: {est.Id}");
+            
+            // Navigate to editor
+            Navigation.NavigateTo($"/estimate/{est.Id}");
+        }
+        catch (Exception ex)
+        {
+            importAlertClass = "alert-danger";
+            importMessage = $"Failed to create estimate: {ex.Message}";
+            Console.WriteLine($"Error creating estimate: {ex}");
+        }
+        finally
+        {
+            isBusy = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnImportFileSelected(InputFileChangeEventArgs e)
+    {
+        importFile = e.File;
+        importJson = null;
+        importMessage = null;
+        
+        if (importFile is null) return;
+        
+        try
+        {
+            using var stream = importFile.OpenReadStream(maxAllowedSize: 20 * 1024 * 1024); // 20 MB
+            using var reader = new StreamReader(stream);
+            importJson = await reader.ReadToEndAsync();
+            importAlertClass = "alert-info";
+            importMessage = $"Selected file: {importFile.Name} ({FormatFileSize(importFile.Size)})";
+        }
+        catch (Exception ex)
+        {
+            importAlertClass = "alert-danger";
+            importMessage = $"Failed to read file: {ex.Message}";
+        }
+        
+        StateHasChanged();
+    }
+
+    private async Task ImportSelected()
+    {
+        if (string.IsNullOrWhiteSpace(importJson) || isBusy) return;
+        
+        try
+        {
+            isBusy = true;
+            StateHasChanged();
+            
+            var url = new Uri(new Uri(Navigation.BaseUri), "api/backup/import");
+            using var http = new HttpClient();
+            var content = new StringContent(importJson, System.Text.Encoding.UTF8, "application/json");
+            var resp = await http.PostAsync(url, content);
+            
+            if (!resp.IsSuccessStatusCode)
+            {
+                importAlertClass = "alert-danger";
+                importMessage = $"Import failed: {(int)resp.StatusCode} {resp.ReasonPhrase}";
+                return;
+            }
+            
+            var result = await resp.Content.ReadAsStringAsync();
+            importAlertClass = "alert-success";
+            importMessage = $"Import completed successfully: {result}";
+            LoadList();
+        }
+        catch (Exception ex)
+        {
+            importAlertClass = "alert-danger";
+            importMessage = $"Import error: {ex.Message}";
+        }
+        finally
+        {
+            isBusy = false;
+            StateHasChanged();
+        }
+    }
+    
+    private static string FormatFileSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024:F1} KB";
+        return $"{bytes / (1024 * 1024):F1} MB";
+    }
+}
