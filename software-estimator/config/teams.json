@@ -40,8 +40,7 @@
         { "role": "Architect", "count": 1, "seniority": "Senior", "employmentType": "FullTime" },
         { "role": "Developer", "count": 5, "seniority": "Mixed", "employmentType": "FullTime" },
         { "role": "QA", "count": 2, "seniority": "Mid", "employmentType": "FullTime" },
-        { "role": "DevOps", "count": 2, "seniority": "Senior", "employmentType": "FullTime" },
-        { "role": "DBA", "count": 1, "seniority": "Senior", "employmentType": "Contractor" }
+        { "role": "DevOps", "count": 2, "seniority": "Senior", "employmentType": "FullTime" }
       ],
       "active": true
     },

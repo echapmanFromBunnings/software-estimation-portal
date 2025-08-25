@@ -36,6 +36,9 @@ public class FunctionalLineItem
     // Optional alert flag when deviating from average
     public bool IsDeviationFlagged { get; set; }
 
-    [MaxLength(500)]
+    [MaxLength(10000)]
     public string? Outcome { get; set; }
+
+    [MaxLength(200)]
+    public string? Domain { get; set; }
 }

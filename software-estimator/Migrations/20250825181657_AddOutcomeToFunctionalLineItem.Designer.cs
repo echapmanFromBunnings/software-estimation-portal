@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using software_estimator.Data;
 
@@ -10,9 +11,11 @@ using software_estimator.Data;
 namespace software_estimator.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250825181657_AddOutcomeToFunctionalLineItem")]
+    partial class AddOutcomeToFunctionalLineItem
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.0");
@@ -73,10 +76,6 @@ namespace software_estimator.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Domain")
-                        .HasMaxLength(200)
-                        .HasColumnType("TEXT");
-
                     b.Property<Guid>("EstimateId")
                         .HasColumnType("TEXT");
 
@@ -84,7 +83,7 @@ namespace software_estimator.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Outcome")
-                        .HasMaxLength(10000)
+                        .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("PatternKey")

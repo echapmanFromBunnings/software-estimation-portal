@@ -119,31 +119,61 @@ else
 
     <div class="mt-4">
         <h5>Functional Work</h5>
-        <div class="d-flex gap-2">
-            <input class="form-control" placeholder="Custom title" @bind="newCustomTitle" />
-            <button class="btn btn-outline-primary" @onclick="AddCustomLine">Add Custom</button>
-            <select class="form-select" @bind="selectedPatternKey">
-                <option value="">Select common pattern...</option>
-                @foreach (var p in patterns)
-                {
-                    <option value="@p.Key">@p.Title (@p.AverageSprints sprints)</option>
-                }
-            </select>
-            <button class="btn btn-outline-secondary" @onclick="AddPatternLine">Add Pattern</button>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">Add Custom Line Item</div>
+                    <div class="card-body">
+                        <div class="d-flex gap-2">
+                            <input class="form-control" placeholder="Custom title" @bind="newCustomTitle" />
+                            <button class="btn btn-outline-primary" @onclick="AddCustomLine">Add</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">Add from Common Pattern</div>
+                    <div class="card-body">
+                        <div class="d-flex gap-2">
+                            <select class="form-select" @bind="selectedPatternKey">
+                                <option value="">Select common pattern...</option>
+                                @foreach (var p in patterns)
+                                {
+                                    <option value="@p.Key">@p.Title (@p.AverageSprints sprints)</option>
+                                }
+                            </select>
+                            <button class="btn btn-outline-secondary" @onclick="AddPatternLine">Add</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <table class="table table-sm mt-2">
-            <thead><tr><th>Title</th><th>Outcome</th><th>Source</th><th>Sprints</th><th>Avg</th><th>Flag</th><th></th></tr></thead>
+        <table class="table table-sm mt-3 table-bordered">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 20%;">Title</th>
+                    <th style="width: 15%;">Domain</th>
+                    <th style="width: 30%;">Outcome</th>
+                    <th style="width: 10%;">Source</th>
+                    <th style="width: 10%;">Sprints</th>
+                    <th style="width: 5%;">Avg</th>
+                    <th style="width: 5%;">Flag</th>
+                    <th style="width: 5%;"></th>
+                </tr>
+            </thead>
             <tbody>
                 @foreach (var f in estimate.FunctionalItems)
                 {
                     <tr>
                         <td><input class="form-control form-control-sm" @bind="f.Title" /></td>
-                        <td><input class="form-control form-control-sm" @bind="f.Outcome" /></td>
+                        <td><input class="form-control form-control-sm" @bind="f.Domain" /></td>
+                        <td><textarea class="form-control form-control-sm" @bind="f.Outcome" rows="2"></textarea></td>
                         <td>@f.SourceType</td>
                         <td><input type="number" step="0.25" min="0" class="form-control form-control-sm" @bind="f.Sprints" @bind:after="() => UpdateDeviation(f)" /></td>
                         <td>@(f.AverageSprints?.ToString() ?? "-")</td>
                         <td>@(f.IsDeviationFlagged ? "⚠" : "")</td>
-                        <td><button class="btn btn-sm btn-outline-danger" @onclick="(() => RemoveFunctional(f))">Remove</button></td>
+                        <td><button class="btn btn-sm btn-outline-danger" @onclick="(() => RemoveFunctional(f))"><i class="fas fa-trash"></i></button></td>
                     </tr>
                 }
             </tbody>
@@ -152,19 +182,35 @@ else
 
     <div class="mt-4">
         <h5>Non-Functional / Supporting</h5>
-        <div class="d-flex gap-2 align-items-center mb-2">
-            <button class="btn btn-sm btn-outline-primary" @onclick="AddNonFunctional">Add Item</button>
-            <select class="form-select form-select-sm" style="max-width: 300px;" @bind="selectedSupportKey">
-                <option value="">Add from supporting activities...</option>
-                @foreach (var a in supportActivities)
-                {
-                    <option value="@a.Key">@a.Title @((a.SuggestedPercentOfFunctional is not null ? $"({a.SuggestedPercentOfFunctional}% of functional)" : string.Empty))</option>
-                }
-            </select>
-            <button class="btn btn-sm btn-outline-secondary" @onclick="AddSelectedSupport">Add Selected</button>
-            <button class="btn btn-sm btn-outline-secondary" @onclick="AddAllSupport">Add All Suggested</button>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">Add Custom Non-Functional Item</div>
+                    <div class="card-body">
+                        <button class="btn btn-sm btn-outline-primary" @onclick="AddNonFunctional">Add Blank Item</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">Add from Supporting Activities</div>
+                    <div class="card-body">
+                        <div class="d-flex gap-2 align-items-center mb-2">
+                            <select class="form-select form-select-sm" style="max-width: 300px;" @bind="selectedSupportKey">
+                                <option value="">Select activity...</option>
+                                @foreach (var a in supportActivities)
+                                {
+                                    <option value="@a.Key">@a.Title @((a.SuggestedPercentOfFunctional is not null ? $"({a.SuggestedPercentOfFunctional}% of functional)" : string.Empty))</option>
+                                }
+                            </select>
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="AddSelectedSupport">Add</button>
+                        </div>
+                        <button class="btn btn-sm btn-outline-info" @onclick="AddAllSupport">Add All Suggested</button>
+                    </div>
+                </div>
+            </div>
         </div>
-        <table class="table table-sm table-bordered">
+        <table class="table table-sm table-bordered mt-3">
             <thead class="table-light">
                 <tr>
                     <th>Title</th>
