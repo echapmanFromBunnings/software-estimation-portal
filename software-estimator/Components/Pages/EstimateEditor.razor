@@ -73,8 +73,8 @@ else
     </div>
 
     <div class="mt-4">
-        <h5>Resource Rates</h5>
-        <button class="btn btn-sm btn-outline-primary" @onclick="AddRate">Add Rate</button>
+    <h5>Resource Rates</h5>
+    <button class="btn btn-sm btn-outline-primary" @onclick="AddRate" aria-label="Add rate"><i class="fas fa-plus"></i></button>
         <table class="table table-sm mt-2">
             <thead><tr><th>Role</th><th>Type</th><th>Daily</th><th>Hourly</th><th></th></tr></thead>
             <tbody>
@@ -126,7 +126,7 @@ else
                     <div class="card-body">
                         <div class="d-flex gap-2">
                             <input class="form-control" placeholder="Custom title" @bind="newCustomTitle" />
-                            <button class="btn btn-outline-primary" @onclick="AddCustomLine">Add</button>
+                            <button class="btn btn-outline-primary" @onclick="AddCustomLine" aria-label="Add custom functional"><i class="fas fa-plus"></i></button>
                         </div>
                     </div>
                 </div>
@@ -143,7 +143,7 @@ else
                                     <option value="@p.Key">@p.Title (@p.AverageSprints sprints)</option>
                                 }
                             </select>
-                            <button class="btn btn-outline-secondary" @onclick="AddPatternLine">Add</button>
+                            <button class="btn btn-outline-secondary" @onclick="AddPatternLine" aria-label="Add pattern functional"><i class="fas fa-plus"></i></button>
                         </div>
                     </div>
                 </div>
@@ -187,7 +187,7 @@ else
                 <div class="card">
                     <div class="card-header">Add Custom Non-Functional Item</div>
                     <div class="card-body">
-                        <button class="btn btn-sm btn-outline-primary" @onclick="AddNonFunctional">Add Blank Item</button>
+                        <button class="btn btn-sm btn-outline-primary" @onclick="AddNonFunctional" aria-label="Add custom non-functional"><i class="fas fa-plus"></i></button>
                     </div>
                 </div>
             </div>
@@ -203,9 +203,9 @@ else
                                     <option value="@a.Key">@a.Title @((a.SuggestedPercentOfFunctional is not null ? $"({a.SuggestedPercentOfFunctional}% of functional)" : string.Empty))</option>
                                 }
                             </select>
-                            <button class="btn btn-sm btn-outline-secondary" @onclick="AddSelectedSupport">Add</button>
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="AddSelectedSupport" aria-label="Add selected supporting activity"><i class="fas fa-plus"></i></button>
                         </div>
-                        <button class="btn btn-sm btn-outline-info" @onclick="AddAllSupport">Add All Suggested</button>
+                        <button class="btn btn-sm btn-outline-info" @onclick="AddAllSupport" aria-label="Add all suggested supporting activities"><i class="fas fa-plus"></i></button>
                     </div>
                 </div>
             </div>
@@ -238,7 +238,7 @@ else
                                     <button class="btn btn-sm btn-outline-danger" @onclick="(() => RemoveAllocation(n, a))"><i class="fas fa-trash"></i></button>
                                 </div>
                             }
-                            <button class="btn btn-sm btn-outline-secondary mt-1" @onclick="(() => AddAllocation(n))"><i class="fas fa-plus"></i> Add Role</button>
+                            <button class="btn btn-sm btn-outline-secondary mt-1" @onclick="(() => AddAllocation(n))" aria-label="Add allocation role"><i class="fas fa-plus"></i></button>
                         </td>
                         <td style="width: 15%;">@Cost.CalcNonFunctionalCost(n, estimate.ResourceRates, estimate.RoleMappings).ToString("C")</td>
                         <td style="width: 5%;">
