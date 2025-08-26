@@ -18,12 +18,29 @@ public class Estimate
     [MaxLength(50)]
     public string? TeamId { get; set; }
 
+    [MaxLength(2000)]
+    public string? ProblemStatement { get; set; }
+
+    [MaxLength(500)]
+    public string? JiraIdeaUrl { get; set; }
+
+    [MaxLength(500)]
+    public string? JiraInitiativeUrl { get; set; }
+
+    [MaxLength(200)]
+    public string? PreparedBy { get; set; }
+
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAtUtc { get; set; }
 
     public int SprintLengthDays { get; set; } = 10; // 2 weeks
 
     public decimal ContingencyPercent { get; set; } = 0; // 0..100
+    // Persisted totals captured at save time
+    public decimal FunctionalSubtotal { get; set; } = 0m;
+    public decimal NonFunctionalSubtotal { get; set; } = 0m;
+    public decimal Subtotal { get; set; } = 0m;
+    public decimal Total { get; set; } = 0m;
 
     public ICollection<FunctionalLineItem> FunctionalItems { get; set; } = new List<FunctionalLineItem>();
     public ICollection<NonFunctionalItem> NonFunctionalItems { get; set; } = new List<NonFunctionalItem>();

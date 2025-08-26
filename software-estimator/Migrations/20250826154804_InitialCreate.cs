@@ -18,10 +18,15 @@ namespace software_estimator.Migrations
                     Id = table.Column<Guid>(type: "TEXT", nullable: false),
                     Name = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
                     Client = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
+                    TeamId = table.Column<string>(type: "TEXT", maxLength: 50, nullable: true),
                     CreatedAtUtc = table.Column<DateTime>(type: "TEXT", nullable: false),
                     UpdatedAtUtc = table.Column<DateTime>(type: "TEXT", nullable: true),
                     SprintLengthDays = table.Column<int>(type: "INTEGER", nullable: false),
                     ContingencyPercent = table.Column<decimal>(type: "TEXT", nullable: false),
+                    FunctionalSubtotal = table.Column<decimal>(type: "TEXT", nullable: false),
+                    NonFunctionalSubtotal = table.Column<decimal>(type: "TEXT", nullable: false),
+                    Subtotal = table.Column<decimal>(type: "TEXT", nullable: false),
+                    Total = table.Column<decimal>(type: "TEXT", nullable: false),
                     Version = table.Column<int>(type: "INTEGER", nullable: false),
                     ClonedFromEstimateId = table.Column<Guid>(type: "TEXT", nullable: true)
                 },
@@ -42,7 +47,11 @@ namespace software_estimator.Migrations
                     PatternKey = table.Column<string>(type: "TEXT", nullable: true),
                     AverageSprints = table.Column<decimal>(type: "TEXT", nullable: true),
                     Sprints = table.Column<decimal>(type: "TEXT", nullable: false),
-                    IsDeviationFlagged = table.Column<bool>(type: "INTEGER", nullable: false)
+                    Cost = table.Column<decimal>(type: "TEXT", nullable: false),
+                    IsDeviationFlagged = table.Column<bool>(type: "INTEGER", nullable: false),
+                    Outcome = table.Column<string>(type: "TEXT", maxLength: 10000, nullable: true),
+                    Domain = table.Column<string>(type: "TEXT", maxLength: 200, nullable: true),
+                    AssignedResourceIds = table.Column<string>(type: "TEXT", maxLength: 200, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -62,7 +71,9 @@ namespace software_estimator.Migrations
                     Id = table.Column<Guid>(type: "TEXT", nullable: false),
                     EstimateId = table.Column<Guid>(type: "TEXT", nullable: false),
                     Title = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
-                    Description = table.Column<string>(type: "TEXT", maxLength: 1000, nullable: true)
+                    Description = table.Column<string>(type: "TEXT", maxLength: 1000, nullable: true),
+                    Sprints = table.Column<decimal>(type: "TEXT", nullable: false),
+                    Cost = table.Column<decimal>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {

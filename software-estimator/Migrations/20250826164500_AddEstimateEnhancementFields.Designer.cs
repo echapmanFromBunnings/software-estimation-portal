@@ -11,8 +11,8 @@ using software_estimator.Data;
 namespace software_estimator.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250825182812_AddDomainToFunctionalLineItem")]
-    partial class AddDomainToFunctionalLineItem
+    [Migration("20250826164500_AddEstimateEnhancementFields")]
+    partial class AddEstimateEnhancementFields
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -40,16 +40,44 @@ namespace software_estimator.Migrations
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("TEXT");
 
+                    b.Property<decimal>("FunctionalSubtotal")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("JiraIdeaUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("JiraInitiativeUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
+                    b.Property<decimal>("NonFunctionalSubtotal")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PreparedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ProblemStatement")
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("SprintLengthDays")
                         .HasColumnType("INTEGER");
 
+                    b.Property<decimal>("Subtotal")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("TeamId")
                         .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Total")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("UpdatedAtUtc")
@@ -69,7 +97,14 @@ namespace software_estimator.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("AssignedResourceIds")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
                     b.Property<decimal?>("AverageSprints")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Cost")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Description")
@@ -117,11 +152,17 @@ namespace software_estimator.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
+                    b.Property<decimal>("Cost")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
                         .HasColumnType("TEXT");
 
                     b.Property<Guid>("EstimateId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Sprints")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Title")
