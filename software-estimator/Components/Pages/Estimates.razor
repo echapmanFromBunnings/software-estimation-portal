@@ -5,6 +5,7 @@
 @inject AppDbContext DbContext
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
+@inject IRoleRatesService RoleRates
 @rendermode InteractiveServer
 
 <PageTitle>Estimates - Software Estimator</PageTitle>
@@ -185,7 +186,7 @@ else
 
     private void LoadList()
     {
-        estimates = DbContext.Estimates.OrderByDescending(e => e.CreatedAtUtc).ToList();
+        estimates = DbContext!.Estimates.OrderByDescending(e => e.CreatedAtUtc).ToList();
         StateHasChanged();
     }
 
@@ -222,9 +223,21 @@ else
             Console.WriteLine("CreateNew - adding to database");
             
             // Add baseline supporting activities when service is available
-            
-            DbContext.Estimates.Add(est);
-            await DbContext.SaveChangesAsync();
+            var acts = await (DbContext is null ? Task.FromResult(new List<object>()) : Task.FromResult(new List<object>()));
+            try
+            {
+                var defaults = await RoleRates.GetDefaultRatesAsync();
+                foreach (var d in defaults)
+                {
+                    var type = d.EmploymentType?.Equals("Contractor", StringComparison.OrdinalIgnoreCase) == true ? ResourceType.Contractor : ResourceType.FTE;
+                    var hourly = d.HourlyRate > 0 ? d.HourlyRate : Math.Round(d.DailyRate / 8m, 3);
+                    est.ResourceRates.Add(new ResourceRate { Role = d.Role, Type = type, DailyRate = d.DailyRate, HourlyRate = hourly });
+                }
+            }
+            catch { /* ignore config failures */ }
+
+            DbContext!.Estimates.Add(est);
+            await DbContext!.SaveChangesAsync();
             
             Console.WriteLine($"CreateNew - saved estimate with ID: {est.Id}");
             

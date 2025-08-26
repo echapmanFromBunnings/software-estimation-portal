@@ -38,6 +38,11 @@ var teamsPath = Path.Combine(AppContext.BaseDirectory, "config", "teams.json");
 builder.Services.Configure<TeamConfigOptions>(o => o.Path = teamsPath);
 builder.Services.AddSingleton<ITeamConfigService, TeamConfigService>();
 
+// Role rates config
+var roleRatesPath = Path.Combine(AppContext.BaseDirectory, "config", "role_rates.json");
+builder.Services.Configure<RoleRatesOptions>(o => o.Path = roleRatesPath);
+builder.Services.AddSingleton<IRoleRatesService, RoleRatesService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -75,7 +80,7 @@ app.MapGet("/api/estimates", (AppDbContext db) =>
     return Results.Ok(items);
 });
 
-app.MapPost("/api/estimates", async (AppDbContext db, ISupportingConfigService supporting, software_estimator.Contracts.EstimateCreateDto dto) =>
+app.MapPost("/api/estimates", async (AppDbContext db, ISupportingConfigService supporting, IRoleRatesService roleRates, software_estimator.Contracts.EstimateCreateDto dto) =>
 {
     var est = new Estimate
     {
@@ -92,6 +97,14 @@ app.MapPost("/api/estimates", async (AppDbContext db, ISupportingConfigService s
             nf.Allocations.Add(new ResourceAllocation { Role = da.Role, Hours = 0 });
         }
         est.NonFunctionalItems.Add(nf);
+    }
+    // Preload default resource rates from config if available
+    var defaults = await roleRates.GetDefaultRatesAsync();
+    foreach (var d in defaults)
+    {
+        var type = d.EmploymentType?.Equals("Contractor", StringComparison.OrdinalIgnoreCase) == true ? ResourceType.Contractor : ResourceType.FTE;
+        var hourly = d.HourlyRate > 0 ? d.HourlyRate : Math.Round(d.DailyRate / 8m, 3);
+        est.ResourceRates.Add(new ResourceRate { Role = d.Role, Type = type, DailyRate = d.DailyRate, HourlyRate = hourly });
     }
     db.Estimates.Add(est);
     await db.SaveChangesAsync();
