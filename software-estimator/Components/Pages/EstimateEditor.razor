@@ -438,8 +438,23 @@ else
                     <dt class="col-sm-3">Subtotal</dt>
                     <dd class="col-sm-9">@Subtotal.ToString("C")</dd>
 
-                    <dt class="col-sm-3">Contingency (@estimate.ContingencyPercent%)</dt>
-                    <dd class="col-sm-9">@((Total - Subtotal).ToString("C"))</dd>
+                    <dt class="col-sm-3">Contingency</dt>
+                    <dd class="col-sm-9">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="input-group" style="width: 120px;">
+                                <input type="number" 
+                                       class="form-control form-control-sm" 
+                                       @bind="estimate.ContingencyPercent" 
+                                       @oninput="OnContingencyChanged"
+                                       min="0" 
+                                       max="100" 
+                                       step="0.1" 
+                                       placeholder="0.0" />
+                                <span class="input-group-text">%</span>
+                            </div>
+                            <span class="text-muted">= @((Total - Subtotal).ToString("C"))</span>
+                        </div>
+                    </dd>
 
                     <dt class="col-sm-3 border-top pt-2 mt-2">Total</dt>
                     <dd class="col-sm-9 border-top pt-2 mt-2"><strong>@Total.ToString("C")</strong></dd>
@@ -552,8 +567,30 @@ else
             }
         }
         Console.WriteLine($"[EstimateEditor] OnTeamsChanged selected: {string.Join(',', selectedTeamIds)}");
-        await RebuildResourceListFromTeams();
+        isBulkResourceOperation = true;
+        try
+        {
+            await RebuildResourceListFromTeams();
+            MarkAsChanged(); // Mark changed after rebuilding is complete
+        }
+        finally
+        {
+            isBulkResourceOperation = false;
+        }
         StateHasChanged();
+    }
+
+    private void OnContingencyChanged(ChangeEventArgs e)
+    {
+        // Parse and validate the contingency percentage
+        if (decimal.TryParse(e.Value?.ToString(), out var value))
+        {
+            // Clamp the value between 0 and 100
+            estimate!.ContingencyPercent = Math.Max(0, Math.Min(100, value));
+        }
+        
+        MarkAsChanged(); // Trigger auto-save
+        StateHasChanged(); // Update UI to reflect new calculations
     }
 
     // OnTeamsArrayChanged removed; using OnTeamsChanged which handles multiple input shapes
@@ -563,14 +600,26 @@ else
         // capture previous keys so we can remove assignments for resources that no longer exist
         var previousKeys = estimate!.ResourceRates.Select(r => r.SourceKey).Where(k => !string.IsNullOrWhiteSpace(k)).ToList();
 
-        // Keep net-new resources (IsNetNew == true)
-        var netNew = estimate.ResourceRates.Where(r => r.IsNetNew).ToList();
-        foreach (var n in netNew)
+        // Keep net-new resources (IsNetNew == true) - create copies to avoid EF tracking issues
+        var netNew = estimate.ResourceRates.Where(r => r.IsNetNew).Select(n => new ResourceRate
         {
-            if (string.IsNullOrWhiteSpace(n.SourceKey)) n.SourceKey = $"NetNew-{Guid.NewGuid():N}";
-            if (string.IsNullOrWhiteSpace(n.SourceTeamName)) n.SourceTeamName = "NetNew";
-        }
+            Role = n.Role,
+            Type = n.Type,
+            DailyRate = n.DailyRate,
+            HourlyRate = n.HourlyRate,
+            SourceKey = string.IsNullOrWhiteSpace(n.SourceKey) ? $"NetNew-{Guid.NewGuid():N}" : n.SourceKey,
+            SourceTeamName = string.IsNullOrWhiteSpace(n.SourceTeamName) ? "NetNew" : n.SourceTeamName,
+            IsNetNew = true
+        }).ToList();
 
+        // Clear and detach existing resource rates to avoid EF tracking conflicts
+        foreach (var rate in estimate.ResourceRates.ToList())
+        {
+            if (Db.Entry(rate).State != EntityState.Detached)
+            {
+                Db.Entry(rate).State = EntityState.Deleted;
+            }
+        }
         estimate.ResourceRates.Clear();
 
         // For each selected team, add their FullTime roles according to counts, and create stable SourceKey
@@ -714,7 +763,7 @@ else
     
     private async Task TryAutoSave()
     {
-        if (hasUnsavedChanges && IsValid && !isSaving && !isAutoSaving)
+        if (hasUnsavedChanges && IsValid && !isSaving && !isAutoSaving && !isBulkResourceOperation)
         {
             await InvokeAsync(async () =>
             {
@@ -974,13 +1023,47 @@ else
         n.Allocations.Remove(a);
     }
 
-    private SquadComposition Squad => new SquadComposition(
-        estimate!.ResourceRates.Count(r => r.Type == ResourceType.FTE),
-        estimate!.ResourceRates.Count(r => r.Type == ResourceType.Contractor),
-        estimate!.ResourceRates.Where(r => r.Type == ResourceType.FTE).DefaultIfEmpty(new ResourceRate { DailyRate = 0 }).Average(r => r.DailyRate),
-        estimate!.ResourceRates.Where(r => r.Type == ResourceType.Contractor).DefaultIfEmpty(new ResourceRate { DailyRate = 0 }).Average(r => r.DailyRate),
-        estimate!.SprintLengthDays
-    );
+    private SquadComposition Squad => GetAllocatedSquadComposition();
+
+    private SquadComposition GetAllocatedSquadComposition()
+    {
+        if (estimate is null) 
+            return new SquadComposition(0, 0, 0, 0, 10);
+
+        // Get all distinct resource keys that are allocated to functional line items
+        var allocatedResourceKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        
+        foreach (var functional in estimate.FunctionalItems)
+        {
+            var assignedResources = functional.AssignedResources ?? new Dictionary<string, decimal>();
+            foreach (var resourceKey in assignedResources.Keys)
+            {
+                if (!string.IsNullOrWhiteSpace(resourceKey))
+                {
+                    allocatedResourceKeys.Add(resourceKey);
+                }
+            }
+        }
+
+        // Find the actual resource rates for these allocated resources
+        var allocatedResources = estimate.ResourceRates
+            .Where(r => allocatedResourceKeys.Contains(r.SourceKey ?? ""))
+            .ToList();
+
+        if (allocatedResources.Count == 0)
+            return new SquadComposition(0, 0, 0, 0, estimate.SprintLengthDays);
+
+        var fteResources = allocatedResources.Where(r => r.Type == ResourceType.FTE).ToList();
+        var contractorResources = allocatedResources.Where(r => r.Type == ResourceType.Contractor).ToList();
+
+        return new SquadComposition(
+            fteResources.Count,
+            contractorResources.Count,
+            fteResources.DefaultIfEmpty(new ResourceRate { DailyRate = 0 }).Average(r => r.DailyRate),
+            contractorResources.DefaultIfEmpty(new ResourceRate { DailyRate = 0 }).Average(r => r.DailyRate),
+            estimate.SprintLengthDays
+        );
+    }
 
     private decimal SquadPerSprint => Cost.CalcSquadCostPerSprint(Squad);
     // Functional subtotal now sums per-line costs computed from assigned resources (utilisation-based)
@@ -1002,6 +1085,7 @@ else
     private bool hasUnsavedChanges = false;
     private DateTime lastChangeTime = DateTime.Now;
     private const int AutoSaveDelayMs = 3000; // 3 seconds after last change
+    private bool isBulkResourceOperation = false; // Flag to prevent auto-save during bulk operations
     // Net-new resource temporary fields
     private string? newNetRole;
     private decimal newNetDaily = 0m;
@@ -1147,25 +1231,23 @@ else
         saveMessage = null;
         try
         {
-            // DO NOT RELOAD - this would overwrite UI changes!
-            // Instead, ensure the entity is tracked properly
+            // Ensure the entity is being tracked by EF
             if (Db.Entry(estimate).State == EntityState.Detached)
             {
                 Db.Estimates.Attach(estimate);
+                Db.Entry(estimate).State = EntityState.Modified;
             }
-            
-            // Mark entity as modified to ensure it saves
-            Db.Entry(estimate).State = EntityState.Modified;
             
             // Recalculate and persist costs for lines and totals so they reflect the values at save time
             foreach (var f in estimate.FunctionalItems)
             {
                 f.Cost = GetFunctionalLineCost(f);
+                // Only attach and mark as modified if detached
                 if (Db.Entry(f).State == EntityState.Detached)
                 {
                     Db.FunctionalLineItems.Attach(f);
+                    Db.Entry(f).State = EntityState.Modified;
                 }
-                Db.Entry(f).State = EntityState.Modified;
             }
             // Non-functional items: either sprints-based or legacy allocations
             foreach (var n in estimate.NonFunctionalItems)
@@ -1190,8 +1272,8 @@ else
                 if (Db.Entry(n).State == EntityState.Detached)
                 {
                     Db.NonFunctionalItems.Attach(n);
+                    Db.Entry(n).State = EntityState.Modified;
                 }
-                Db.Entry(n).State = EntityState.Modified;
             }
 
             // Totals
@@ -1202,8 +1284,62 @@ else
 
             estimate.UpdatedAtUtc = DateTime.UtcNow;
             
-            // Simple save without retry mechanism - if there's a conflict, just let it fail with a clear message
-            await Db.SaveChangesAsync();
+            // Simple save with concurrency exception handling
+            try
+            {
+                await Db.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                // Handle concurrency conflict - reload the entity and retry once
+                if (isAutoSave)
+                {
+                    // For auto-save, just silently skip if there's a concurrency conflict
+                    // since the user is likely still editing
+                    return;
+                }
+                
+                // For manual save, refresh the entity and try again
+                foreach (var entry in ex.Entries)
+                {
+                    await entry.ReloadAsync();
+                }
+                
+                // Recalculate costs again with refreshed data
+                foreach (var f in estimate.FunctionalItems)
+                {
+                    f.Cost = GetFunctionalLineCost(f);
+                }
+                foreach (var n in estimate.NonFunctionalItems)
+                {
+                    if (n.Sprints > 0)
+                    {
+                        var squad = new SquadComposition(
+                            estimate.ResourceRates.Count(r => r.Type == ResourceType.FTE),
+                            estimate.ResourceRates.Count(r => r.Type == ResourceType.Contractor),
+                            estimate.ResourceRates.Where(r => r.Type == ResourceType.FTE).DefaultIfEmpty(new ResourceRate { DailyRate = 0 }).Average(r => r.DailyRate),
+                            estimate.ResourceRates.Where(r => r.Type == ResourceType.Contractor).DefaultIfEmpty(new ResourceRate { DailyRate = 0 }).Average(r => r.DailyRate),
+                            estimate.SprintLengthDays
+                        );
+                        var perSprint = Cost.CalcSquadCostPerSprint(squad);
+                        n.Cost = Decimal.Round(Cost.CalcFunctionalLineCost(n.Sprints, perSprint), 2);
+                    }
+                    else
+                    {
+                        n.Cost = Decimal.Round(CalcNonFunctionalCostWithDefaults(n), 2);
+                    }
+                }
+                
+                // Recalculate totals
+                estimate.FunctionalSubtotal = Decimal.Round(estimate.FunctionalItems.Sum(f => f.Cost), 2);
+                estimate.NonFunctionalSubtotal = Decimal.Round(estimate.NonFunctionalItems.Sum(n => n.Cost), 2);
+                estimate.Subtotal = Decimal.Round(estimate.FunctionalSubtotal + estimate.NonFunctionalSubtotal, 2);
+                estimate.Total = Decimal.Round(Cost.ApplyContingency(estimate.Subtotal, estimate.ContingencyPercent), 2);
+                estimate.UpdatedAtUtc = DateTime.UtcNow;
+                
+                // Retry save once
+                await Db.SaveChangesAsync();
+            }
             
             hasUnsavedChanges = false;
             
