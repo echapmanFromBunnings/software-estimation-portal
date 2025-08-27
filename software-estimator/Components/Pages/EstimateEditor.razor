@@ -125,11 +125,15 @@ else
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Daily rate</label>
-                    <input class="form-control" type="number" min="0" @bind="newNetDaily" />
+                    <input class="form-control" type="number" min="0" @bind="newNetDaily" @oninput="OnDailyRateChanged" />
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Hourly</label>
                     <input class="form-control" type="number" min="0" @bind="newNetHourly" />
+                    @if (newNetDaily > 0 && newNetHourly == 0)
+                    {
+                        <div class="small text-muted">≈ @Math.Round(newNetDaily / 8m, 2)</div>
+                    }
                 </div>
                 <div class="col-md-2">
                     <div class="form-check">
@@ -591,6 +595,20 @@ else
         
         MarkAsChanged(); // Trigger auto-save
         StateHasChanged(); // Update UI to reflect new calculations
+    }
+
+    private void OnDailyRateChanged(ChangeEventArgs e)
+    {
+        // Parse the daily rate and automatically calculate hourly rate if no hourly rate is manually set
+        if (decimal.TryParse(e.Value?.ToString(), out var dailyRate) && dailyRate >= 0)
+        {
+            newNetDaily = dailyRate;
+            // If user hasn't manually set an hourly rate, clear it so the calculated value shows
+            if (newNetHourly == 0)
+            {
+                StateHasChanged(); // Update UI to show the calculated hourly rate
+            }
+        }
     }
 
     // OnTeamsArrayChanged removed; using OnTeamsChanged which handles multiple input shapes
